@@ -1,4 +1,4 @@
-# 4-Bit BCD (Binary Coded Decimal) Adder
+# 4-Bit BCD (Binary Coded Decimal) Adder isac reji
 
 This repository contains a Verilog implementation of a 1-digit Binary Coded Decimal (BCD) adder. The design is built hierarchically from the ground up, starting with a basic 1-bit full adder, scaling to a 4-bit Ripple Carry Adder (RCA), and finally implementing the BCD correction logic at the top level.
 
