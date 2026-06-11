@@ -1,4 +1,4 @@
-module encoder4by2(input[3:0]d,output reg [1:0]b);
+module decoder_4x2(input[3:0]d,output reg [1:0]b);
 always @(*)
 begin
 if (d==4'b0001)
