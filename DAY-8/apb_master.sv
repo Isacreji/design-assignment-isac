@@ -1,110 +1,76 @@
-module tb;
-
-logic PCLK;
-logic PRESETn;
-
-logic start;
-logic rw;
-logic [7:0] addr;
-logic [31:0] wdata;
-
-logic PSEL;
-logic PENABLE;
-logic PWRITE;
-logic [7:0] PADDR;
-logic [31:0] PWDATA;
-
-logic [31:0] PRDATA;
-logic [31:0] rdata;
-
-logic PREADY;
-logic done;
-
-apb_master master(
-.PCLK(PCLK),
-.PRESETn(PRESETn),
-.start(start),
-.rw(rw),
-.addr(addr),
-.wdata(wdata),
-.PREADY(PREADY),
-.PRDATA(PRDATA),
-.PSEL(PSEL),
-.PENABLE(PENABLE),
-.PWRITE(PWRITE),
-.PADDR(PADDR),
-.PWDATA(PWDATA),
-.rdata(rdata),
-.done(done)
+module apb_master(
+input logic PCLK,
+input logic PRESETn,
+input logic start,
+input logic rw,
+input logic [7:0] addr,
+input logic [31:0] wdata,
+input logic PREADY,
+input logic [31:0] PRDATA,
+output logic PSEL,
+output logic PENABLE,
+output logic PWRITE,
+output logic [7:0] PADDR,
+output logic [31:0] PWDATA,
+output logic [31:0] rdata,
+output logic done
 );
 
-apb_slave slave(
-.PCLK(PCLK),
-.PRESETn(PRESETn),
-.PSEL(PSEL),
-.PENABLE(PENABLE),
-.PWRITE(PWRITE),
-.PADDR(PADDR),
-.PWDATA(PWDATA),
-.PRDATA(PRDATA),
-.PREADY(PREADY)
-);
+typedef enum logic [1:0] {IDLE,SETUP,ACCESS} state_t;
 
-always #5 PCLK = ~PCLK;
+state_t ps,ns;
 
-task write_apb(input [7:0] a,input [31:0] d);
+always_ff @(posedge PCLK or negedge PRESETn)
 begin
- @(posedge PCLK);
- addr  = a;
- wdata = d;
- rw    = 1;
- start = 1;
-
- @(posedge PCLK);
- start = 0;
-
- wait(done);
+ if(!PRESETn)
+  ps <= IDLE;
+ else
+  ps <= ns;
 end
-endtask
 
-task read_apb(input [7:0] a);
+always_comb
 begin
- @(posedge PCLK);
- addr  = a;
- rw    = 0;
- start = 1;
+ ns = ps;
 
- @(posedge PCLK);
- start = 0;
-
- wait(done);
-
- $display("ADDR=%h DATA=%h",a,rdata);
+ case(ps)
+  IDLE   : if(start) ns = SETUP;
+  SETUP  : ns = ACCESS;
+  ACCESS : if(PREADY) ns = IDLE;
+  default: ns = IDLE;
+ endcase
 end
-endtask
 
-initial
+always_comb
 begin
+ PSEL    = 0;
+ PENABLE = 0;
+ PWRITE  = rw;
+ PADDR   = addr;
+ PWDATA  = wdata;
+ done    = 0;
+ rdata   = 0;
 
- PCLK = 0;
- PRESETn = 0;
- start = 0;
- rw = 0;
- addr = 0;
- wdata = 0;
+ case(ps)
 
- #20;
- PRESETn = 1;
+  SETUP:
+  begin
+   PSEL = 1;
+  end
 
- write_apb(8'h00,32'h12345678);
- write_apb(8'h04,32'hABCDEF12);
+  ACCESS:
+  begin
+   PSEL    = 1;
+   PENABLE = 1;
 
- read_apb(8'h00);
- read_apb(8'h04);
+   if(PREADY)
+   begin
+    done = 1;
+    if(!rw)
+     rdata = PRDATA;
+   end
+  end
 
- #50;
- $finish;
-
+ endcase
 end
 
 endmodule
