@@ -1,52 +1,70 @@
-module tb_fifo;
-    logic clk;
-    logic rst_n;
-    logic wr_en;
-    logic rd_en;
-    logic [7:0] data_in;
-    logic [7:0] data_out;
-    logic full;
-    logic empty;
 
-    fifo dut (
-        .clk(clk), .rst_n(rst_n), .wr_en(wr_en), .rd_en(rd_en),
-        .data_in(data_in), .data_out(data_out), .full(full), .empty(empty)
-    );
+class fifo_transaction;
+  
+  rand bit [7:0] data_in;
+  rand bit wr_enb;
+  rand bit rd_enb;
+  
+  bit [7:0] data_out;
+  bit empty;
+  bit full;
+  
+  int min;
+  int max;
+  
+ constraint c_1 {
+  if(wr_enb) {
+    data_in > min;
+    data_in < max;
+  }
+}
+  
+  
+  constraint c_2 { 
+     wr_enb != rd_enb;
+  }
+  
+  constraint c_3 {
+    wr_enb dist {1 := 50, 0 := 50};
+    rd_enb dist {1 := 50, 0 := 50};
+  }
+  
+constraint c_4 {
+  rd_enb -> (data_in == 0);
+}
+  
+  function void set_boundaries(int min_value, int max_value);
+    this.min = min_value;
+    this.max = max_value;
+  endfunction
+    
+  function void post_randomize();
+    $display("Transaction Randomized -> WR: %0b | RD: %0b | DATA_IN: %0d", 
+              wr_enb, rd_enb, data_in);
+  endfunction
+    
+  function void display(string s = "FIFO_TRANS");
+    $display("[%s] WR=%0b RD=%0b DIN=%0d DOUT=%0d FULL=%0b EMPTY=%0b", 
+              s, wr_enb, rd_enb, data_in, data_out, full, empty);
+  endfunction  
+    
+endclass
 
-    always #5 clk = ~clk;
+module tb;
+  
+  fifo_transaction tx;
 
-    initial begin
-        fifo_transaction tr;
-        tr = new();
+  initial begin
+    tx = new();
+    tx.set_boundaries(0, 50);
 
-        clk = 0;
-        rst_n = 0;
-        wr_en = 0;
-        rd_en = 0;
-        data_in = 0;
-
-        #10 rst_n = 1; 
-
-        $display("--- Starting FIFO Test ---");
-
-        for (int i=0; i<10; i++) begin
-            if (!tr.randomize()) $display("Randomization failed!");
-
-            wr_en = tr.wr_en;
-            rd_en = tr.rd_en;
-            data_in = tr.data_in;
-
-            @(posedge clk); 
-            #1; 
-
-            tr.data_out = data_out;
-            tr.full = full;
-            tr.empty = empty;
-
-            tr.display($sformatf("Trans %0d", i+1));
-        end
-
-        #20 $display("--- End of Test ---");
-        $finish;
+	for (int i = 0; i < 10; i++) begin
+      if (tx.randomize())
+        $display("Value of wr_enb is %0b, rd_enb is %0b, data_in is %0d", 			tx.wr_enb, tx.rd_enb, tx.data_in);
+      else
+        $display("Randomization failed");
     end
+      
+  end
+
 endmodule
