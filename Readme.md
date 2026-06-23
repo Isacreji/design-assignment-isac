@@ -12,11 +12,11 @@ Through these assignments, various concepts of digital system design were explor
 
 ## Intern Details
 
-**Name:** Prayag V T
+**Name:** Isac M Reji
 
 **Program:** B.Tech in Electronics and Communication Engineering
 
-**Institution:** TKM College of Engineering
+**Institution:** Rajiv Gandhi Institute of Technology
 
 **Development Environment:** Xilinx Vivado Design Suite
 
