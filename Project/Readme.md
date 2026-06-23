@@ -14,7 +14,7 @@
 * Lasim
 * Chinchina
 * Shafin V
-* Isac
+* Isac M Reji
 * Lakshmi
 
 ---
