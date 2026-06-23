@@ -1,36 +1,52 @@
-`timescale 1ns / 1ps
 
-module fifo #(parameter DEPTH=8, DATA_WIDTH=8) (
-    input logic clk,
-    input logic rst_n,
-    input logic wr_en,
-    input logic rd_en,
-    input logic [DATA_WIDTH-1:0] data_in,
-    output logic [DATA_WIDTH-1:0] data_out,
-    output logic full,
-    output logic empty
+
+module fifo(
+    input clk,
+    input rst,
+    input wrenb,
+    input rdenb,
+    input [7:0] data_in,
+    output reg [7:0] data_out,
+    output full,
+    output empty
 );
-    
-    logic [DATA_WIDTH-1:0] mem [0:DEPTH-1];
-    logic [3:0] w_ptr, r_ptr; 
 
-    assign full = {~w_ptr[3], w_ptr[2:0]} == r_ptr;
-    assign empty = w_ptr == r_ptr;
+reg [7:0] mem [7:0];
+reg [2:0] wr_ptr;
+reg [2:0] rd_ptr;
+integer i;
 
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            w_ptr <= 0;
-            r_ptr <= 0;
-            data_out <= 0;
-        end else begin
-            if (wr_en && !full) begin
-                mem[w_ptr[2:0]] <= data_in;
-                w_ptr <= w_ptr + 1;
-            end
-            if (rd_en && !empty) begin
-                data_out <= mem[r_ptr[2:0]];
-                r_ptr <= r_ptr + 1;
-            end
+// Status flags
+assign full  = ((wr_ptr + 3'b001) == rd_ptr);
+assign empty = (wr_ptr == rd_ptr);
+
+// Sequential logic
+always @(posedge clk)
+begin
+    if(rst)
+    begin
+        for(i=0;i<8;i=i+1)
+            mem[i] <= 8'b0;
+
+        wr_ptr   <= 3'b000;
+        rd_ptr   <= 3'b000;
+        data_out <= 8'b00000000;
+    end
+    else
+    begin
+        // Write
+        if(wrenb && !full)
+        begin
+            mem[wr_ptr] <= data_in;
+            wr_ptr <= wr_ptr + 3'b001;
+        end
+
+        // Read
+        if(rdenb && !empty)
+        begin
+            data_out <= mem[rd_ptr];
+            rd_ptr <= rd_ptr + 3'b001;
         end
     end
+end
 endmodule
